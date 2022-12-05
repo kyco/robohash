@@ -4,7 +4,7 @@ use crate::set_type::Set;
 use strum::IntoEnumIterator;
 
 pub mod colour;
-mod error;
+pub mod error;
 mod hash;
 mod image;
 mod materials;
@@ -14,6 +14,7 @@ pub mod set_type;
 pub struct RoboHash {
     hash_array: Vec<i64>,
     set: String,
+    sets_root: String,
 }
 
 impl RoboHash {
@@ -31,7 +32,17 @@ impl RoboHash {
             _ => String::from(set.as_str()),
         };
 
-        Ok(Self { hash_array, set })
+        let sets_root = String::from("./sets");
+
+        Ok(Self {
+            hash_array,
+            set,
+            sets_root,
+        })
+    }
+
+    pub fn set_location(&mut self, sets_location: &str) {
+        self.sets_root = String::from(sets_location);
     }
 
     pub fn assemble_base64(&self) -> Result<String, Error> {
@@ -42,12 +53,13 @@ impl RoboHash {
     }
 
     fn select_files_in_set(&self) -> Result<Vec<String>, Error> {
-        let categories_in_set = materials::categories_in_set(&self.set)?;
+        let categories_in_set = materials::categories_in_set(&self.sets_root, &self.set)?;
         let mut index = 4;
         let mut files = categories_in_set
             .iter()
             .flat_map(|category| {
-                if let Ok(file) = materials::files_in_category(&self.set, category) {
+                if let Ok(file) = materials::files_in_category(&self.sets_root, &self.set, category)
+                {
                     let set_index = self.hash_array[index] % file.len() as i64;
                     let selected_file = match file.get(set_index as usize) {
                         Some(file) => file.to_string(),
@@ -98,22 +110,24 @@ mod tests {
     #[test]
     #[ignore]
     fn test() {
-        // arrange
+        // setup
         let initial_string = "test";
         let sets: Vec<Set> = Set::iter().collect();
         let colours: Vec<Colour> = Colour::iter().collect();
 
-        // act
         for set in sets {
             for colour in &colours {
+                // arrange
                 let test_resource = format!("{initial_string:#?}_{set:#?}_{colour:#?}");
                 let expected_robo_hash = load_base64_string_image_resources(&test_resource);
+
+                // act
                 let robo_hash = RoboHash::new(initial_string, set.clone(), colour.clone()).unwrap();
                 let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
+
+                // assert
                 assert_eq!(constructed_robo_hash, expected_robo_hash);
             }
         }
-
-        // assert
     }
 }

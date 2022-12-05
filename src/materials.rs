@@ -2,18 +2,20 @@ use crate::error::Error;
 use std::env;
 use std::path::{Path, PathBuf};
 
-pub(crate) const SETS_PATH: &str = "sets";
-
-pub(crate) fn categories_in_set(set: &str) -> Result<Vec<String>, Error> {
+pub(crate) fn categories_in_set(sets_root: &str, set: &str) -> Result<Vec<String>, Error> {
     let current_dir = get_current_working_dir()?;
-    let sets_dir = current_dir.join(Path::new(SETS_PATH)).join(set);
+    let sets_dir = current_dir.join(Path::new(sets_root)).join(set);
     let sets = directories_in_path(&sets_dir)?;
     Ok(sets)
 }
 
-pub(crate) fn files_in_category(set: &str, category: &str) -> Result<Vec<String>, Error> {
+pub(crate) fn files_in_category(
+    sets_root: &str,
+    set: &str,
+    category: &str,
+) -> Result<Vec<String>, Error> {
     let current_dir = get_current_working_dir()?;
-    let sets_dir = path_builder(&current_dir, set, category);
+    let sets_dir = path_builder(sets_root, &current_dir, set, category);
     let sets = directories_in_path(&sets_dir)?
         .iter()
         .flat_map(|dir| {
@@ -28,18 +30,11 @@ pub(crate) fn files_in_category(set: &str, category: &str) -> Result<Vec<String>
     Ok(sets)
 }
 
-fn path_builder(current_dir: &PathBuf, set: &str, category: &str) -> PathBuf {
+fn path_builder(sets_root: &str, current_dir: &PathBuf, set: &str, category: &str) -> PathBuf {
     current_dir
-        .join(Path::new(SETS_PATH))
+        .join(Path::new(sets_root))
         .join(set)
         .join(category)
-}
-
-pub(crate) fn backgrounds() -> Result<Vec<String>, Error> {
-    let current_dir = get_current_working_dir()?;
-    let backgrounds_dir = current_dir.join(Path::new("backgrounds"));
-    let backgrounds = directories_in_path(&backgrounds_dir)?;
-    Ok(backgrounds)
 }
 
 fn directories_in_path(path: &PathBuf) -> Result<Vec<String>, Error> {
@@ -63,19 +58,4 @@ fn directories_in_path(path: &PathBuf) -> Result<Vec<String>, Error> {
 
 fn get_current_working_dir() -> Result<PathBuf, Error> {
     Ok(env::current_dir()?)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn backgrounds_reads_all_directories_in_backgrounds_directory() {
-        // arrange
-        // act
-        let backgrounds = backgrounds();
-        // assert
-        assert!(backgrounds.is_ok());
-        assert_eq!(backgrounds.unwrap().len(), 2)
-    }
 }

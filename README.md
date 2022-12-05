@@ -3,7 +3,7 @@ Rust implementation of [RoboHash](https://github.com/e1ven/Robohash/) by [e1ven]
 
 ## Install
 ```bash
-robohash = "0.1.1"
+robohash = "0.1.2"
 ```
 
 ## Example Implementation
@@ -21,6 +21,13 @@ fn main() -> Result<(), Error> {
     println!("{robo_hash:#?}");
     Ok(())
 }
+```
+
+### Change Sets Directory
+Note the added `mut` to `let mut robo`.
+```rust
+let mut robo = RoboHash::new(text, Set::Default, Colour::Any)?;
+robo.set_location("./custom_set_location");
 ```
 
 ## Implemented
