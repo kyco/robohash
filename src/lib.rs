@@ -94,10 +94,9 @@ fn random_colour(hash_array: &Vec<i64>) -> Colour {
 mod tests {
     use super::*;
     use crate::image::tests::load_base64_string_image_resources;
-    use std::fs::File;
-    use std::io::Write;
 
     #[test]
+    #[ignore]
     fn test() {
         // arrange
         let initial_string = "test";
