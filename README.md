@@ -3,7 +3,7 @@ Rust implementation of [RoboHash](https://github.com/e1ven/Robohash/) by [e1ven]
 
 ## Install
 ```bash
-robohash = "0.1.2"
+robohash = "0.1.3"
 ```
 
 ## Example Implementation

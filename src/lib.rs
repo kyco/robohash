@@ -58,20 +58,21 @@ impl RoboHash {
         let mut files = categories_in_set
             .iter()
             .flat_map(|category| {
-                if let Ok(file) = materials::files_in_category(&self.sets_root, &self.set, category)
-                {
-                    let set_index = self.hash_array[index] % file.len() as i64;
-                    let selected_file = match file.get(set_index as usize) {
-                        Some(file) => file.to_string(),
-                        None => {
+                match materials::files_in_category(&self.sets_root, &self.set, category) {
+                    Ok(file) => {
+                        let set_index = (self.hash_array[index] % file.len() as i64) as usize;
+                        if let Some(selected_file) = file.get(set_index) {
+                            index = index + 1;
+                            Some(String::from(selected_file))
+                        } else {
                             println!("failed to fetch index {set_index:#?} from {file:#?}");
-                            return None;
+                            None
                         }
-                    };
-                    index = index + 1;
-                    Some(selected_file)
-                } else {
-                    None
+                    }
+                    Err(e) => {
+                        println!("{e:#?}");
+                        None
+                    }
                 }
             })
             .collect::<Vec<String>>();
