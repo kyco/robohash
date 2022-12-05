@@ -28,7 +28,7 @@ pub(crate) fn to_base_64(image: &RgbaImage) -> Result<String, Error> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use std::fs::File;
     use std::io::Read;
@@ -59,7 +59,7 @@ mod tests {
             String::from("./sets/set4/003#03mouth/007#mouth7.png"),
             String::from("./sets/set4/004#04accessories/003#accessory3.png"),
         ];
-        let expected_base64 = load_base64_string_image_resources();
+        let expected_base64 = load_base64_string_image_resources("image");
         let robo_hash = build_robo_hash_image(&robo_parts).unwrap();
         // act
         let base64_string = to_base_64(&robo_hash);
@@ -68,9 +68,9 @@ mod tests {
         assert_eq!(base64_string.unwrap(), expected_base64)
     }
 
-    fn load_base64_string_image_resources() -> String {
+    pub(crate) fn load_base64_string_image_resources(filename: &str) -> String {
         let mut file_contents = String::new();
-        let mut file = File::open("./test_resources/image.txt").unwrap();
+        let mut file = File::open(&format!("./test_resources/{}.txt", filename)).unwrap();
         file.read_to_string(&mut file_contents).unwrap();
         file_contents
     }

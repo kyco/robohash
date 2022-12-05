@@ -1,4 +1,6 @@
-#[derive(PartialEq, Debug)]
+use strum_macros::EnumIter;
+
+#[derive(PartialEq, Clone, Debug, EnumIter)]
 pub enum Set {
     Default,
     Set1,

@@ -93,80 +93,28 @@ fn random_colour(hash_array: &Vec<i64>) -> Colour {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::image::tests::load_base64_string_image_resources;
     use std::fs::File;
     use std::io::Write;
 
     #[test]
-    fn set_type_default_constructs_robo_hash_with_set_1() {
+    fn test() {
         // arrange
-        let initial_string = "initial_string";
-        let set = Set::Default;
-        let colour = Colour::Any;
-        let robo_hash = RoboHash::new(initial_string, set, colour).unwrap();
-        // act
-        let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
-        write_test_resources("default_set_colour_any.txt", &constructed_robo_hash);
-        // assert
-        assert_eq!(1, 1)
-    }
+        let initial_string = "test";
+        let sets: Vec<Set> = Set::iter().collect();
+        let colours: Vec<Colour> = Colour::iter().collect();
 
-    #[test]
-    fn set_type_default_colour_yellow_constructs_yellow_robo_hash_with_set_1() {
-        // arrange
-        let initial_string = "initial_string";
-        let set = Set::Default;
-        let colour = Colour::Yellow;
-        let robo_hash = RoboHash::new(initial_string, set, colour).unwrap();
         // act
-        let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
-        write_test_resources("default_set_colour_yellow.txt", &constructed_robo_hash);
-        // assert
-        assert_eq!(1, 1)
-    }
+        for set in sets {
+            for colour in &colours {
+                let test_resource = format!("{initial_string:#?}_{set:#?}_{colour:#?}");
+                let expected_robo_hash = load_base64_string_image_resources(&test_resource);
+                let robo_hash = RoboHash::new(initial_string, set.clone(), colour.clone()).unwrap();
+                let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
+                assert_eq!(constructed_robo_hash, expected_robo_hash);
+            }
+        }
 
-    #[test]
-    fn set_type_set_1_constructs_robo_hash_with_set_1() {
-        // arrange
-        let initial_string = "initial_string";
-        let set = Set::Set1;
-        let colour = Colour::Any;
-        let robo_hash = RoboHash::new(initial_string, set, colour).unwrap();
-        // act
-        let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
-        write_test_resources("set_1_colour_any.txt", &constructed_robo_hash);
         // assert
-        assert_eq!(1, 1)
-    }
-
-    #[test]
-    fn set_type_set_2_constructs_robo_hash_with_set_2() {
-        // arrange
-        let initial_string = "initial_string";
-        let set = Set::Set2;
-        let colour = Colour::Blue;
-        let robo_hash = RoboHash::new(initial_string, set, colour).unwrap();
-        // act
-        let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
-        write_test_resources("set_2_colour_blue.txt", &constructed_robo_hash);
-        // assert
-        assert_eq!(1, 1)
-    }
-
-    #[test]
-    fn assemble_base64_returns_base64_encoded_image_of_robo_hash() {
-        // arrange
-        let initial_string = "initial_string";
-        let set = Set::Default;
-        let colour = Colour::Any;
-        let robo_hash = RoboHash::new(initial_string, set, colour).unwrap();
-        // act
-        let files = robo_hash.assemble_base64();
-        // assert
-        assert!(files.is_ok())
-    }
-
-    fn write_test_resources(filename: &str, base64_string: &str) {
-        let file = File::create(&format!("./test_resources/{}.txt", filename));
-        let _ = file.unwrap().write_all(base64_string.as_bytes()).unwrap();
     }
 }
