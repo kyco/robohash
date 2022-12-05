@@ -9,6 +9,7 @@ repository = "https://github.com/kyco/robohash"
 readme = "README.md"
 license-file = "LICENSE"
 keywords = ["robo", "robohash"]
+exclude = ["test_resources", ".idea"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
