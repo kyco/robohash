@@ -3,12 +3,12 @@ use crate::error::Error;
 use crate::set_type::Set;
 use strum::IntoEnumIterator;
 
-mod colour;
+pub mod colour;
 mod error;
 mod hash;
 mod image;
 mod materials;
-mod set_type;
+pub mod set_type;
 
 #[derive(Debug)]
 pub struct RoboHash {
