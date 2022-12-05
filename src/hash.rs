@@ -1,8 +1,9 @@
+use crate::error::Error;
 use data_encoding::HEXLOWER;
 use ring::digest::{Context, SHA512};
 use std::io::{BufReader, Read};
 
-pub(crate) fn sha512_digest(string: &str) -> anyhow::Result<String> {
+pub(crate) fn sha512_digest(string: &str) -> Result<String, Error> {
     let mut reader = BufReader::new(string.as_bytes());
     let mut context = Context::new(&SHA512);
     let mut buffer = [0; 1024];
@@ -19,7 +20,7 @@ pub(crate) fn sha512_digest(string: &str) -> anyhow::Result<String> {
     Ok(HEXLOWER.encode(digest.as_ref()))
 }
 
-pub(crate) fn split_hash(hash: &str, chunks: usize) -> anyhow::Result<Vec<i64>> {
+pub(crate) fn split_hash(hash: &str, chunks: usize) -> Result<Vec<i64>, Error> {
     let mut vector: Vec<i64> = Vec::with_capacity(chunks);
     for i in 0..chunks {
         let block_size = hash.len() / chunks;

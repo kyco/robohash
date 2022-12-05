@@ -1,55 +1,54 @@
+use crate::colour::Colour;
+use crate::error::Error;
+use crate::set_type::Set;
+use strum::IntoEnumIterator;
+
+mod colour;
+mod error;
 mod hash;
 mod image;
 mod materials;
+mod set_type;
 
+#[derive(Debug)]
 pub struct RoboHash {
-    hash: String,
-    sets: Vec<String>,
-    hash_array_chunks: usize,
-    selected_set_default_index: usize,
+    hash_array: Vec<i64>,
+    set: String,
 }
 
 impl RoboHash {
-    pub fn new(string: &str) -> anyhow::Result<Self> {
-        let hash = hash::sha512_digest(string)?;
-        let sets = materials::sets()?;
+    pub fn new(string: &str, set: Set, colour: Colour) -> Result<Self, Error> {
         let hash_array_chunks = 11;
-        let selected_set_default_index = 1;
-        Ok(Self {
-            hash,
-            sets,
-            hash_array_chunks,
-            selected_set_default_index,
-        })
+
+        let hash = hash::sha512_digest(string)?;
+        let hash_array = hash::split_hash(&hash, hash_array_chunks)?;
+        let colour = colour_selection(&hash_array, &colour, &set);
+
+        let set = match set {
+            Set::Default | Set::Set1 => {
+                format!("{}/{}", &set.as_str(), colour.as_str().unwrap())
+            }
+            _ => String::from(set.as_str()),
+        };
+
+        Ok(Self { hash_array, set })
     }
 
-    pub fn assemble_base64(&self) -> anyhow::Result<String> {
-        let hash_array = hash::split_hash(&self.hash, self.hash_array_chunks)?;
-        let robo_set = self.selected_set(&hash_array)?;
-        let selected_files_in_set = self.select_files_in_set(&hash_array, &robo_set)?;
+    pub fn assemble_base64(&self) -> Result<String, Error> {
+        let selected_files_in_set = self.select_files_in_set()?;
         let image = image::build_robo_hash_image(&selected_files_in_set)?;
         let image_string = image::to_base_64(&image)?;
         Ok(image_string)
     }
 
-    fn selected_set(&self, hash_array: &Vec<i64>) -> anyhow::Result<String> {
-        let set_index = self.default_set_index(hash_array);
-        let selected_set = self.sets.get(set_index).unwrap().to_string();
-        Ok(selected_set)
-    }
-
-    fn default_set_index(&self, hash_array: &Vec<i64>) -> usize {
-        (hash_array[self.selected_set_default_index] % self.sets.len() as i64) as usize
-    }
-
-    fn select_files_in_set(&self, hash_array: &Vec<i64>, set: &str) -> anyhow::Result<Vec<String>> {
-        let categories_in_set = materials::categories_in_set(set)?;
+    fn select_files_in_set(&self) -> Result<Vec<String>, Error> {
+        let categories_in_set = materials::categories_in_set(&self.set)?;
         let mut index = 4;
         let mut files = categories_in_set
             .iter()
             .flat_map(|category| {
-                if let Ok(file) = materials::files_in_category(set, category) {
-                    let set_index = hash_array[index] % file.len() as i64;
+                if let Ok(file) = materials::files_in_category(&self.set, category) {
+                    let set_index = self.hash_array[index] % file.len() as i64;
                     let selected_file = file.get(set_index as usize).unwrap().to_string();
                     index = index + 1;
                     Some(selected_file)
@@ -65,113 +64,103 @@ impl RoboHash {
     }
 }
 
+fn colour_selection(hash_array: &Vec<i64>, colour: &Colour, set: &Set) -> Colour {
+    let is_default_set_with_any_colour =
+        (set == &Set::Set1 || set == &Set::Default) && colour == &Colour::Any;
+    let is_not_set_1_and_not_any_colour =
+        (set != &Set::Set1 && set != &Set::Default) && set != &Set::Default;
+
+    if is_default_set_with_any_colour || is_not_set_1_and_not_any_colour {
+        random_colour(hash_array)
+    } else {
+        colour.clone()
+    }
+}
+
+fn random_colour(hash_array: &Vec<i64>) -> Colour {
+    let mut available_colours: Vec<Colour> = Colour::iter().collect();
+    available_colours.retain(|colour| colour != &Colour::Any);
+    let selected_index = (hash_array[0] % available_colours.len() as i64) as usize;
+    available_colours[selected_index].clone()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::File;
+    use std::io::Write;
 
     #[test]
-    fn new_instance_of_robo_hash_returns_robo_hash_struct() {
+    fn set_type_default_constructs_robo_hash_with_set_1() {
         // arrange
         let initial_string = "initial_string";
-        let expected_hash = "92ba5204aca5e21f60d40dda5b64e0e64e46028da5d33d2b577a0c80b6ed2843b46a458bbb0023d2634ecc7bccb2678e0b33f5ec0144fb124174325113396ef4";
+        let set = Set::Default;
+        let colour = Colour::Any;
+        let robo_hash = RoboHash::new(initial_string, set, colour).unwrap();
         // act
-        let robo_hash = RoboHash::new(initial_string);
+        let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
+        write_test_resources("default_set_colour_any.txt", &constructed_robo_hash);
         // assert
-        assert_eq!(robo_hash.unwrap().hash, expected_hash)
+        assert_eq!(1, 1)
     }
 
     #[test]
-    fn new_instance_of_robo_hash_returns_robo_hash_struct_with_sets() {
+    fn set_type_default_colour_yellow_constructs_yellow_robo_hash_with_set_1() {
         // arrange
         let initial_string = "initial_string";
-        let sets = vec!["set1", "set2", "set3", "set4", "set5"];
+        let set = Set::Default;
+        let colour = Colour::Yellow;
+        let robo_hash = RoboHash::new(initial_string, set, colour).unwrap();
         // act
-        let robo_hash = RoboHash::new(initial_string);
+        let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
+        write_test_resources("default_set_colour_yellow.txt", &constructed_robo_hash);
         // assert
-        assert_eq!(robo_hash.unwrap().sets, sets)
+        assert_eq!(1, 1)
+    }
+
+    #[test]
+    fn set_type_set_1_constructs_robo_hash_with_set_1() {
+        // arrange
+        let initial_string = "initial_string";
+        let set = Set::Set1;
+        let colour = Colour::Any;
+        let robo_hash = RoboHash::new(initial_string, set, colour).unwrap();
+        // act
+        let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
+        write_test_resources("set_1_colour_any.txt", &constructed_robo_hash);
+        // assert
+        assert_eq!(1, 1)
+    }
+
+    #[test]
+    fn set_type_set_2_constructs_robo_hash_with_set_2() {
+        // arrange
+        let initial_string = "initial_string";
+        let set = Set::Set2;
+        let colour = Colour::Blue;
+        let robo_hash = RoboHash::new(initial_string, set, colour).unwrap();
+        // act
+        let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
+        write_test_resources("set_2_colour_blue.txt", &constructed_robo_hash);
+        // assert
+        assert_eq!(1, 1)
     }
 
     #[test]
     fn assemble_base64_returns_base64_encoded_image_of_robo_hash() {
         // arrange
         let initial_string = "initial_string";
-        let robo_hash = RoboHash::new(initial_string).unwrap();
+        let set = Set::Default;
+        let colour = Colour::Any;
+        let robo_hash = RoboHash::new(initial_string, set, colour).unwrap();
         // act
         let files = robo_hash.assemble_base64();
         // assert
         assert!(files.is_ok())
     }
 
-    #[test]
-    fn selected_set_returns_name_of_selected_set() {
-        // arrange
-        let initial_string = "initial_string";
-        let hash_array = vec![
-            10083058600650,
-            6468747187213,
-            15005379333732,
-            15693853337043,
-            4203522531528,
-            785662886836,
-            7302933098498,
-            4202144124027,
-            14066663350451,
-            4354761377019,
-            1254520726801,
-            10083058600650,
-            6468747187213,
-            15005379333732,
-            15693853337043,
-            4203522531528,
-            785662886836,
-            7302933098498,
-            4202144124027,
-            14066663350451,
-            4354761377019,
-            1254520726801,
-        ];
-        let robo_hash = RoboHash::new(initial_string).unwrap();
-        // act
-        let set = robo_hash.selected_set(&hash_array);
-        // assert
-        assert!(set.is_ok());
-        assert_eq!(set.unwrap(), "set4")
-    }
-
-    #[test]
-    fn select_files_in_set_test() {
-        // arrange
-        let initial_string = "initial_string";
-        let selected_set = "set4";
-        let hash_array = vec![
-            10083058600650,
-            6468747187213,
-            15005379333732,
-            15693853337043,
-            4203522531528,
-            785662886836,
-            7302933098498,
-            4202144124027,
-            14066663350451,
-            4354761377019,
-            1254520726801,
-            10083058600650,
-            6468747187213,
-            15005379333732,
-            15693853337043,
-            4203522531528,
-            785662886836,
-            7302933098498,
-            4202144124027,
-            14066663350451,
-            4354761377019,
-            1254520726801,
-        ];
-        let robo_hash = RoboHash::new(initial_string).unwrap();
-
-        // act
-        let files = robo_hash.select_files_in_set(&hash_array, selected_set);
-        // assert
-        assert!(files.is_ok())
+    fn write_test_resources(filename: &str, base64_string: &str) {
+        let file = File::create(&format!("./test_resources/{}.txt", filename));
+        let _ = file.unwrap().write_all(base64_string.as_bytes()).unwrap();
     }
 }

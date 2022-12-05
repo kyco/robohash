@@ -1,45 +1,55 @@
+use crate::error::Error;
 use std::env;
 use std::path::{Path, PathBuf};
 
-pub(crate) fn sets() -> anyhow::Result<Vec<String>> {
+pub(crate) const SETS_PATH: &str = "sets";
+
+pub(crate) fn sets() -> Result<Vec<String>, Error> {
     let current_dir = get_current_working_dir()?;
-    let sets_dir = current_dir.join(Path::new("sets"));
-    let sets = dirs_in_path(&sets_dir)?;
+    let sets_dir = current_dir.join(Path::new(SETS_PATH));
+    let sets = directories_in_path(&sets_dir)?;
     Ok(sets)
 }
 
-pub(crate) fn categories_in_set(set: &str) -> anyhow::Result<Vec<String>> {
+pub(crate) fn categories_in_set(set: &str) -> Result<Vec<String>, Error> {
     let current_dir = get_current_working_dir()?;
-    let sets_dir = current_dir.join(Path::new("sets")).join(set);
-    let sets = dirs_in_path(&sets_dir)?;
+    let sets_dir = current_dir.join(Path::new(SETS_PATH)).join(set);
+    let sets = directories_in_path(&sets_dir)?;
     Ok(sets)
 }
 
-pub(crate) fn files_in_category(set: &str, category: &str) -> anyhow::Result<Vec<String>> {
+pub(crate) fn files_in_category(set: &str, category: &str) -> Result<Vec<String>, Error> {
     let current_dir = get_current_working_dir()?;
-    let sets_dir = current_dir.join(Path::new("sets")).join(set).join(category);
-    let sets = dirs_in_path(&sets_dir)?
+    let sets_dir = path_builder(set, category, &current_dir);
+    let sets = directories_in_path(&sets_dir)?
         .iter()
         .map(|dir| String::from(sets_dir.join(dir).as_path().to_str().unwrap()))
         .collect::<Vec<String>>();
     Ok(sets)
 }
 
-pub(crate) fn colours() -> anyhow::Result<Vec<String>> {
+fn path_builder(set: &str, category: &str, current_dir: &PathBuf) -> PathBuf {
+    current_dir
+        .join(Path::new(SETS_PATH))
+        .join(set)
+        .join(category)
+}
+
+pub(crate) fn colours() -> Result<Vec<String>, Error> {
     let current_dir = get_current_working_dir()?;
-    let sets_dir = current_dir.join(Path::new("sets")).join("set1");
-    let sets = dirs_in_path(&sets_dir)?;
+    let sets_dir = current_dir.join(Path::new(SETS_PATH)).join("set1");
+    let sets = directories_in_path(&sets_dir)?;
     Ok(sets)
 }
 
-pub(crate) fn backgrounds() -> anyhow::Result<Vec<String>> {
+pub(crate) fn backgrounds() -> Result<Vec<String>, Error> {
     let current_dir = get_current_working_dir()?;
     let backgrounds_dir = current_dir.join(Path::new("backgrounds"));
-    let backgrounds = dirs_in_path(&backgrounds_dir)?;
+    let backgrounds = directories_in_path(&backgrounds_dir)?;
     Ok(backgrounds)
 }
 
-fn dirs_in_path(path: &PathBuf) -> anyhow::Result<Vec<String>> {
+fn directories_in_path(path: &PathBuf) -> Result<Vec<String>, Error> {
     let mut directories = path
         .read_dir()?
         .into_iter()
@@ -58,7 +68,7 @@ fn dirs_in_path(path: &PathBuf) -> anyhow::Result<Vec<String>> {
     Ok(directories)
 }
 
-fn get_current_working_dir() -> anyhow::Result<PathBuf> {
+fn get_current_working_dir() -> Result<PathBuf, Error> {
     Ok(env::current_dir()?)
 }
 

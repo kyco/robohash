@@ -1,7 +1,8 @@
+use crate::error::Error;
 use image::RgbaImage;
 use std::io::Cursor;
 
-pub(crate) fn build_robo_hash_image(robo_parts: &Vec<String>) -> anyhow::Result<RgbaImage> {
+pub(crate) fn build_robo_hash_image(robo_parts: &Vec<String>) -> Result<RgbaImage, Error> {
     let mut base_image = image::ImageBuffer::new(1024, 1024);
     robo_parts.iter().for_each(|image_path| {
         let mut image = image::open(image_path).unwrap();
@@ -10,7 +11,7 @@ pub(crate) fn build_robo_hash_image(robo_parts: &Vec<String>) -> anyhow::Result<
     Ok(base_image)
 }
 
-pub(crate) fn to_base_64(image: &RgbaImage) -> anyhow::Result<String> {
+pub(crate) fn to_base_64(image: &RgbaImage) -> Result<String, Error> {
     let mut bytes: Vec<u8> = Vec::new();
     image.write_to(&mut Cursor::new(&mut bytes), image::ImageOutputFormat::Png)?;
     Ok(base64::encode(&bytes))
