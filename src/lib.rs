@@ -26,7 +26,7 @@ impl RoboHash {
 
         let set = match set {
             Set::Default | Set::Set1 => {
-                format!("{}/{}", &set.as_str(), colour.as_str().unwrap())
+                format!("{}/{}", &set.as_str(), colour.as_str())
             }
             _ => String::from(set.as_str()),
         };
@@ -49,7 +49,13 @@ impl RoboHash {
             .flat_map(|category| {
                 if let Ok(file) = materials::files_in_category(&self.set, category) {
                     let set_index = self.hash_array[index] % file.len() as i64;
-                    let selected_file = file.get(set_index as usize).unwrap().to_string();
+                    let selected_file = match file.get(set_index as usize) {
+                        Some(file) => file.to_string(),
+                        None => {
+                            println!("failed to fetch index {set_index:#?} from {file:#?}");
+                            return None;
+                        }
+                    };
                     index = index + 1;
                     Some(selected_file)
                 } else {

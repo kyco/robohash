@@ -1,14 +1,24 @@
 use crate::error::Error;
-use image::RgbaImage;
+use image::{DynamicImage, RgbaImage};
 use std::io::Cursor;
 
 pub(crate) fn build_robo_hash_image(robo_parts: &Vec<String>) -> Result<RgbaImage, Error> {
     let mut base_image = image::ImageBuffer::new(1024, 1024);
-    robo_parts.iter().for_each(|image_path| {
-        let mut image = image::open(image_path).unwrap();
-        image::imageops::overlay(&mut base_image, &mut image, 0, 0);
-    });
+    robo_parts
+        .iter()
+        .try_for_each(|image_path| -> Result<(), Error> {
+            let mut image = try_open_image(image_path)?;
+            image::imageops::overlay(&mut base_image, &mut image, 0, 0);
+            Ok(())
+        })?;
     Ok(base_image)
+}
+
+fn try_open_image(image_path: &String) -> Result<DynamicImage, Error> {
+    match image::open(image_path) {
+        Ok(image) => Ok(image),
+        Err(e) => Err(Error::ImageOpenFailed(format!("{e:#?}"))),
+    }
 }
 
 pub(crate) fn to_base_64(image: &RgbaImage) -> Result<String, Error> {

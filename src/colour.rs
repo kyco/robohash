@@ -16,19 +16,19 @@ pub enum Colour {
 }
 
 impl Colour {
-    pub fn as_str(&self) -> Option<&str> {
+    pub fn as_str(&self) -> &str {
         match self {
-            Colour::Any => None,
-            Colour::Blue => Some("blue"),
-            Colour::Brown => Some("brown"),
-            Colour::Green => Some("green"),
-            Colour::Grey => Some("grey"),
-            Colour::Orange => Some("orange"),
-            Colour::Pink => Some("pink"),
-            Colour::Purple => Some("purple"),
-            Colour::Red => Some("red"),
-            Colour::White => Some("white"),
-            Colour::Yellow => Some("yellow"),
+            Colour::Any => "",
+            Colour::Blue => "blue",
+            Colour::Brown => "brown",
+            Colour::Green => "green",
+            Colour::Grey => "grey",
+            Colour::Orange => "orange",
+            Colour::Pink => "pink",
+            Colour::Purple => "purple",
+            Colour::Red => "red",
+            Colour::White => "white",
+            Colour::Yellow => "yellow",
         }
     }
 }

@@ -23,7 +23,14 @@ pub(crate) fn files_in_category(set: &str, category: &str) -> Result<Vec<String>
     let sets_dir = path_builder(set, category, &current_dir);
     let sets = directories_in_path(&sets_dir)?
         .iter()
-        .map(|dir| String::from(sets_dir.join(dir).as_path().to_str().unwrap()))
+        .flat_map(|dir| {
+            if let Some(path) = sets_dir.join(dir).as_path().to_str() {
+                Some(String::from(path))
+            } else {
+                println!("cannot create directory {sets_dir:#?}/{dir:#?}");
+                None
+            }
+        })
         .collect::<Vec<String>>();
     Ok(sets)
 }
