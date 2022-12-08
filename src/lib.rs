@@ -15,6 +15,7 @@ pub struct RoboHashBuilder {
     set: Set,
     set_root: String,
     colour: Colour,
+    image_size: ImageSize,
 }
 
 impl RoboHashBuilder {
@@ -22,11 +23,13 @@ impl RoboHashBuilder {
         let set = Set::Default;
         let colour = Colour::Any;
         let set_root = String::from("./sets");
+        let image_size = ImageSize::default();
         Self {
             text: String::from(text),
             set,
             set_root,
             colour,
+            image_size,
         }
     }
 
@@ -45,6 +48,11 @@ impl RoboHashBuilder {
         self
     }
 
+    pub fn with_size(mut self, width: u32, height: u32) -> RoboHashBuilder {
+        self.image_size = ImageSize { width, height };
+        self
+    }
+
     pub fn build(&self) -> Result<RoboHash, Error> {
         let hash_array_chunks = 11;
         let hash = hash::sha512_digest(&self.text)?;
@@ -58,7 +66,9 @@ impl RoboHashBuilder {
             _ => String::from(self.set.as_str()),
         };
         let sets_root = self.set_root.to_owned();
+
         Ok(RoboHash {
+            image_size: self.image_size,
             hash_array,
             set,
             sets_root,
@@ -68,9 +78,25 @@ impl RoboHashBuilder {
 
 #[derive(Debug)]
 pub struct RoboHash {
+    image_size: ImageSize,
     hash_array: Vec<i64>,
     set: String,
     sets_root: String,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct ImageSize {
+    width: u32,
+    height: u32,
+}
+
+impl ImageSize {
+    pub(crate) fn default() -> Self {
+        Self {
+            width: 1024,
+            height: 1024,
+        }
+    }
 }
 
 impl RoboHash {
@@ -79,11 +105,11 @@ impl RoboHash {
             return Err(Error::RoboHashMissingRequiredData);
         }
 
-        let selected_files_in_set =
-            select_files_in_set(&self.hash_array, &self.sets_root, &self.set)?;
-        let image = image::build_robo_hash_image(&selected_files_in_set)?;
-        let image_string = image::to_base_64(&image)?;
-        Ok(image_string)
+        let set = files_in_set(&self.hash_array, &self.sets_root, &self.set)?;
+        let image =
+            image::build_robo_hash_image(&set, self.image_size.width, self.image_size.height)?;
+        let base64 = image::to_base_64(&image)?;
+        Ok(base64)
     }
 
     fn is_missing_required_data(&self) -> bool {
@@ -91,11 +117,7 @@ impl RoboHash {
     }
 }
 
-fn select_files_in_set(
-    hash_array: &Vec<i64>,
-    sets_root: &str,
-    set: &str,
-) -> Result<Vec<String>, Error> {
+fn files_in_set(hash_array: &Vec<i64>, sets_root: &str, set: &str) -> Result<Vec<String>, Error> {
     let categories_in_set = materials::categories_in_set(sets_root, set)?;
     let mut index = 4;
     let mut files = categories_in_set
@@ -257,7 +279,12 @@ mod tests {
     fn test_robo_hash_assemble_base64_returns_missing_data_error_when_robo_hash_does_not_contain_hash_array(
     ) {
         // arrange
+        let image_size = ImageSize {
+            width: 1024,
+            height: 1024,
+        };
         let robo_hash = RoboHash {
+            image_size,
             hash_array: vec![],
             set: String::from("set1"),
             sets_root: String::from("set_root"),
@@ -276,7 +303,12 @@ mod tests {
     fn test_robo_hash_assemble_base64_returns_missing_data_error_when_set_does_not_contain_any_data(
     ) {
         // arrange
+        let image_size = ImageSize {
+            width: 1024,
+            height: 1024,
+        };
         let robo_hash = RoboHash {
+            image_size,
             hash_array: vec![1, 2],
             set: String::from(""),
             sets_root: String::from("set_root"),
@@ -295,7 +327,12 @@ mod tests {
     fn test_robo_hash_assemble_base64_returns_missing_data_error_when_sets_root_does_not_contain_any_data(
     ) {
         // arrange
+        let image_size = ImageSize {
+            width: 1024,
+            height: 1024,
+        };
         let robo_hash = RoboHash {
+            image_size,
             hash_array: vec![1, 2],
             set: String::from("set1"),
             sets_root: String::from(""),

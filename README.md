@@ -3,7 +3,7 @@ Rust implementation of [RoboHash](https://github.com/e1ven/Robohash/) by [e1ven]
 
 ## Install
 ```bash
-robohash = "0.2.0"
+robohash = "0.2.1"
 ```
 
 ## Example Implementation
@@ -19,6 +19,15 @@ fn main() -> Result<(), Error> {
     println!("{robo_hash:#?}");
     Ok(())
 }
+````
+
+### Define Size
+```rust
+let width = 512;
+let height = 512;
+let robo = RoboHashBuilder::new("test")
+    .with_size(width, height)
+    .build();
 ```
 
 ### Define Colour
@@ -54,6 +63,7 @@ fn main() -> Result<(), Error> {
         .with_set(Set::Set1)
         .with_colour(Colour::Green)
         .with_set_location("./sets-root")
+        .with_size(512, 512)
         .build();
     let robo_hash = robo.assemble_base64()?;
     println!("{robo_hash:#?}");
@@ -68,4 +78,4 @@ fn main() -> Result<(), Error> {
 - [ ] Support backgrounds
 - [ ] Support for saving images to disk
 - [ ] Support for returning raw image data
-- [ ] Support image resizing
+- [x] Support image sizing
