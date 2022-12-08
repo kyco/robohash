@@ -12,6 +12,8 @@ pub enum Error {
     ImageOpenFailed(String),
     #[error("failed to fetch index {0}[{1}]")]
     InvalidArrayIndex(String, String),
+    #[error("Is missing required data. Please use the RoboHashBuilder.")]
+    RoboHashMissingRequiredData,
     #[error("unknown error")]
     Unknown,
 }

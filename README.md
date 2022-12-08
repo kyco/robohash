@@ -3,31 +3,62 @@ Rust implementation of [RoboHash](https://github.com/e1ven/Robohash/) by [e1ven]
 
 ## Install
 ```bash
-robohash = "0.1.3"
+robohash = "0.2.0"
 ```
 
 ## Example Implementation
 
 ```rust
 use std::fmt::Error;
-use robohash::colour::Colour;
-use robohash::RoboHash;
-use robohash::set_type::Set;
+use robohash::RoboHashBuilder;
 
 fn main() -> Result<(), Error> {
-    let text = "something_to_turn_into_a_robot";
-    let robo = RoboHash::new(text, Set::Default, Colour::Any)?;
+    let text = "test";
+    let robo = RoboHashBuilder::new(text).build();
     let robo_hash = robo.assemble_base64()?;
     println!("{robo_hash:#?}");
     Ok(())
 }
 ```
 
-### Change Sets Directory
-Note the added `mut` to `let mut robo`.
+### Define Colour
 ```rust
-let mut robo = RoboHash::new(text, Set::Default, Colour::Any)?;
-robo.set_location("./custom_set_location");
+let robo = RoboHashBuilder::new("test")
+    .with_colour(Colour::Green)
+    .build();
+```
+
+### Define Set
+```rust
+let robo = RoboHashBuilder::new("test")
+    .with_set(Set::Set3)
+    .build();
+```
+
+### Change Sets Directory
+```rust
+let robo = RoboHashBuilder::new("test")
+    .with_set_location("./sets_location")
+    .build();
+```
+
+### Full Example
+
+```rust
+use std::fmt::Error;
+use robohash::RoboHashBuilder;
+
+fn main() -> Result<(), Error> {
+    let text = "test";
+    let robo = RoboHashBuilder::new(text)
+        .with_set(Set::Set1)
+        .with_colour(Colour::Green)
+        .with_set_location("./sets-root")
+        .build();
+    let robo_hash = robo.assemble_base64()?;
+    println!("{robo_hash:#?}");
+    Ok(())
+}
 ```
 
 ## Implemented
