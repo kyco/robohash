@@ -1,11 +1,9 @@
-use std::env;
 use std::path::{Path, PathBuf};
 
 use crate::error::Error;
 
 pub(crate) fn categories_in_set(root: &str, set: &str) -> Result<Vec<String>, Error> {
-    let current_dir = get_current_working_dir()?;
-    let sets_dir = current_dir.join(Path::new(root)).join(set);
+    let sets_dir = Path::new(root).join(set);
     let sets = directories_in_path(&sets_dir)?;
     Ok(sets)
 }
@@ -15,8 +13,7 @@ pub(crate) fn files_in_category(
     set: &str,
     category: &str,
 ) -> Result<Vec<String>, Error> {
-    let current_dir = get_current_working_dir()?;
-    let directory = path_builder(root, &current_dir, set, category);
+    let directory = path_builder(root, set, category);
     let files = directories_in_path(&directory)?
         .iter()
         .flat_map(|dir| {
@@ -31,11 +28,8 @@ pub(crate) fn files_in_category(
     Ok(files)
 }
 
-fn path_builder(sets_root: &str, current_dir: &PathBuf, set: &str, category: &str) -> PathBuf {
-    current_dir
-        .join(Path::new(sets_root))
-        .join(set)
-        .join(category)
+fn path_builder(sets_root: &str, set: &str, category: &str) -> PathBuf {
+    Path::new(sets_root).join(set).join(category)
 }
 
 fn directories_in_path(path: &PathBuf) -> Result<Vec<String>, Error> {
@@ -55,8 +49,4 @@ fn directories_in_path(path: &PathBuf) -> Result<Vec<String>, Error> {
         .collect::<Vec<String>>();
     directories.sort();
     Ok(directories)
-}
-
-fn get_current_working_dir() -> Result<PathBuf, Error> {
-    Ok(env::current_dir()?)
 }
