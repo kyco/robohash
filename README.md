@@ -98,6 +98,8 @@ fn main() -> Result<(), Error> {
 ## Implemented
 
 - Generate base64 robo hash image from any of the provided sets and colours
+- Background support
+- Image size support
 
 ## Todo
 
