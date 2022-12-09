@@ -1,21 +1,17 @@
-use strum::IntoEnumIterator;
-
-use crate::colour::Colour;
 use crate::error::Error;
-use crate::set_type::Set;
 
-pub mod colour;
 pub mod error;
 mod hash;
 mod image;
 mod materials;
-pub mod set_type;
+
+const SET_DEFAULT: &str = "set1";
 
 pub struct RoboHashBuilder {
     text: String,
-    colour: Colour,
+    colour: Option<String>,
     image_size: ImageSize,
-    set: Set,
+    set: String,
     set_root: String,
     background_set: Option<String>,
     background_root: String,
@@ -23,12 +19,12 @@ pub struct RoboHashBuilder {
 
 impl RoboHashBuilder {
     pub fn new(text: &str) -> Self {
-        let set = Set::Default;
-        let colour = Colour::Any;
+        let colour = None;
+        let image_size = ImageSize::default();
+        let set = String::from(SET_DEFAULT);
         let set_root = String::from("./sets");
         let background_set = None;
         let background_root = String::from("./backgrounds");
-        let image_size = ImageSize::default();
         Self {
             text: String::from(text),
             colour,
@@ -40,8 +36,8 @@ impl RoboHashBuilder {
         }
     }
 
-    pub fn with_set(mut self, set: Set) -> RoboHashBuilder {
-        self.set = set;
+    pub fn with_set(mut self, set: &str) -> RoboHashBuilder {
+        self.set = String::from(set);
         self
     }
 
@@ -60,8 +56,8 @@ impl RoboHashBuilder {
         self
     }
 
-    pub fn with_colour(mut self, colour: Colour) -> RoboHashBuilder {
-        self.colour = colour;
+    pub fn with_colour(mut self, colour: &str) -> RoboHashBuilder {
+        self.colour = Some(String::from(colour));
         self
     }
 
@@ -74,14 +70,8 @@ impl RoboHashBuilder {
         let hash_array_chunks = 11;
         let hash = hash::sha512_digest(&self.text)?;
         let hash_array = hash::split_hash(&hash, hash_array_chunks)?;
-
-        let colour = colour_selection(&hash_array, &self.colour, &self.set);
-        let set = match self.set {
-            Set::Default | Set::Set1 => {
-                format!("{}/{}", &self.set.as_str(), colour.as_str())
-            }
-            _ => String::from(self.set.as_str()),
-        };
+        let colour = colour_selection(&hash_array, &self.colour, &self.set, &self.set_root)?;
+        let set = self.set_with_colour(colour);
         let sets_root = self.set_root.to_owned();
         let background_set = self.background_set.to_owned();
         let background_root = self.background_root.to_owned();
@@ -94,6 +84,16 @@ impl RoboHashBuilder {
             background_set,
             background_root,
         })
+    }
+
+    fn set_with_colour(&self, colour: Option<String>) -> String {
+        match self.set.as_str() {
+            SET_DEFAULT => match colour {
+                Some(colour) => format!("{}/{}", &self.set.as_str(), colour.as_str()),
+                None => String::from(self.set.as_str()),
+            },
+            _ => String::from(self.set.as_str()),
+        }
     }
 }
 
@@ -199,24 +199,23 @@ fn background(
     })
 }
 
-fn colour_selection(hash_array: &Vec<i64>, colour: &Colour, set: &Set) -> Colour {
-    let is_default_set_with_any_colour =
-        (set == &Set::Set1 || set == &Set::Default) && colour == &Colour::Any;
-    let is_not_set_1_and_not_any_colour =
-        (set != &Set::Set1 && set != &Set::Default) && set != &Set::Default;
-
-    if is_default_set_with_any_colour || is_not_set_1_and_not_any_colour {
-        random_colour(hash_array)
+fn colour_selection(
+    hash_array: &Vec<i64>,
+    colour: &Option<String>,
+    set: &str,
+    set_root: &str,
+) -> Result<Option<String>, Error> {
+    if set == SET_DEFAULT && colour.is_none() {
+        Ok(Some(random_colour(hash_array, set_root)?))
     } else {
-        colour.clone()
+        Ok(colour.clone())
     }
 }
 
-fn random_colour(hash_array: &Vec<i64>) -> Colour {
-    let mut available_colours: Vec<Colour> = Colour::iter().collect();
-    available_colours.retain(|colour| colour != &Colour::Any);
+fn random_colour(hash_array: &Vec<i64>, set_root: &str) -> Result<String, Error> {
+    let available_colours = materials::categories_in_set(set_root, "set1")?;
     let selected_index = (hash_array[0] % available_colours.len() as i64) as usize;
-    available_colours[selected_index].clone()
+    Ok(available_colours[selected_index].clone())
 }
 
 #[cfg(test)]
@@ -242,7 +241,7 @@ mod tests {
     fn test_that_robo_hash_builder_returns_a_builder_with_default_set() {
         // arrange
         let text = "text";
-        let expected_set = Set::Default;
+        let expected_set = SET_DEFAULT;
         // act
         let robo_hash_builder = RoboHashBuilder::new(text);
         // assert
@@ -253,7 +252,7 @@ mod tests {
     fn test_that_robo_hash_builder_returns_a_builder_with_colour_set_to_any() {
         // arrange
         let text = "text";
-        let expected_colour = Colour::Any;
+        let expected_colour = None;
         // act
         let robo_hash_builder = RoboHashBuilder::new(text);
         // assert
@@ -264,8 +263,8 @@ mod tests {
     fn test_that_robo_hash_builder_with_set_changes_the_set() {
         // arrange
         let text = "text";
-        let set = Set::Set3;
-        let expected_set = Set::Set3;
+        let set = "set3";
+        let expected_set = "set3";
         // act
         let robo_hash_builder = RoboHashBuilder::new(text).with_set(set);
         // assert
@@ -276,8 +275,8 @@ mod tests {
     fn test_that_robo_hash_builder_with_colour_changes_sets_colour() {
         // arrange
         let text = "text";
-        let colour = Colour::Blue;
-        let expected_colour = Colour::Blue;
+        let colour = "blue";
+        let expected_colour = Some(String::from("blue"));
         // act
         let robo_hash_builder = RoboHashBuilder::new(text).with_colour(colour);
         // assert
@@ -411,11 +410,11 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test_that_selected_background_set_is_loaded() {
+    fn test_that_robo_hash_image_is_generated() {
         // arrange
         let initial_string = "test";
-        let set = Set::Default;
-        let colour = Colour::Any;
+        let set = SET_DEFAULT;
+        let colour: Option<String> = None;
         let background_set = "bg1";
 
         let set = set.clone();
@@ -425,7 +424,6 @@ mod tests {
         // act
         let robo_hash = RoboHashBuilder::new(initial_string)
             .with_set(set.clone())
-            .with_colour(colour.clone())
             .with_background_set(background_set)
             .build()
             .unwrap();
@@ -433,37 +431,6 @@ mod tests {
 
         // assert
         assert_eq!(constructed_robo_hash, expected_robo_hash);
-    }
-
-    #[test]
-    #[ignore]
-    fn test_colour_and_sets() {
-        // setup
-        let initial_string = "test";
-        let sets: Vec<Set> = Set::iter().collect();
-        let colours: Vec<Colour> = Colour::iter().collect();
-
-        for set in sets {
-            for colour in colours.clone() {
-                // arrange
-                let set = set.clone();
-                let test_resource = format!("{initial_string:#?}_{set:#?}_{colour:#?}");
-                let expected_robo_hash = load_base64_string_image_resources(&test_resource);
-
-                // act
-                let robo_hash = RoboHashBuilder::new(initial_string)
-                    .with_set(set)
-                    .with_colour(colour)
-                    .with_size(512, 512)
-                    .build()
-                    .unwrap();
-                let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
-                // _write_to_test_resources(&test_resource, &constructed_robo_hash);
-
-                // assert
-                assert_eq!(constructed_robo_hash, expected_robo_hash);
-            }
-        }
     }
 
     fn _write_to_test_resources(location: &str, content: &str) -> std::io::Result<()> {
