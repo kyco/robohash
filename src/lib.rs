@@ -7,8 +7,8 @@ mod materials;
 
 const SET_DEFAULT: &str = "set1";
 
-pub struct RoboHashBuilder {
-    text: String,
+pub struct RoboHashBuilder<'a> {
+    text: &'a str,
     colour: Option<String>,
     image_size: ImageSize,
     set: String,
@@ -17,8 +17,8 @@ pub struct RoboHashBuilder {
     background_root: String,
 }
 
-impl RoboHashBuilder {
-    pub fn new(text: &str) -> Self {
+impl<'a> RoboHashBuilder<'a> {
+    pub fn new(text: &'a str) -> Self {
         let colour = None;
         let image_size = ImageSize::default();
         let set = String::from(SET_DEFAULT);
@@ -26,7 +26,7 @@ impl RoboHashBuilder {
         let background_set = None;
         let background_root = String::from("./backgrounds");
         Self {
-            text: String::from(text),
+            text,
             colour,
             image_size,
             set,
@@ -36,32 +36,32 @@ impl RoboHashBuilder {
         }
     }
 
-    pub fn with_set(mut self, set: &str) -> RoboHashBuilder {
+    pub fn with_set(mut self, set: &str) -> RoboHashBuilder<'a> {
         self.set = String::from(set);
         self
     }
 
-    pub fn with_set_location(mut self, set_location: &str) -> RoboHashBuilder {
+    pub fn with_set_location(mut self, set_location: &str) -> RoboHashBuilder<'a> {
         self.set_root = String::from(set_location);
         self
     }
 
-    pub fn with_background_set(mut self, background_set: &str) -> RoboHashBuilder {
+    pub fn with_background_set(mut self, background_set: &str) -> RoboHashBuilder<'a> {
         self.background_set = Some(String::from(background_set));
         self
     }
 
-    pub fn with_background_location(mut self, background_location: &str) -> RoboHashBuilder {
+    pub fn with_background_location(mut self, background_location: &str) -> RoboHashBuilder<'a> {
         self.background_root = String::from(background_location);
         self
     }
 
-    pub fn with_colour(mut self, colour: &str) -> RoboHashBuilder {
+    pub fn with_colour(mut self, colour: &str) -> RoboHashBuilder<'a> {
         self.colour = Some(String::from(colour));
         self
     }
 
-    pub fn with_size(mut self, width: u32, height: u32) -> RoboHashBuilder {
+    pub fn with_size(mut self, width: u32, height: u32) -> RoboHashBuilder<'a> {
         self.image_size = ImageSize { width, height };
         self
     }
