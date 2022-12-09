@@ -37,7 +37,7 @@ let robo = RoboHashBuilder::new("test")
 
 ```rust
 let robo = RoboHashBuilder::new("test")
-.with_colour(Colour::Green)
+.with_colour("green")
 .build();
 ```
 
@@ -45,7 +45,7 @@ let robo = RoboHashBuilder::new("test")
 
 ```rust
 let robo = RoboHashBuilder::new("test")
-.with_set(Set::Set3)
+.with_set("set3")
 .build();
 ```
 
@@ -82,8 +82,8 @@ use robohash::RoboHashBuilder;
 fn main() -> Result<(), Error> {
     let text = "test";
     let robo = RoboHashBuilder::new(text)
-        .with_set(Set::Set1)
-        .with_colour(Colour::Green)
+        .with_set("set1")
+        .with_colour("green")
         .with_set_location("./sets-root")
         .with_background_set("bg1")
         .with_background_location("./backgrounds")
