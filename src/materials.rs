@@ -1,33 +1,34 @@
-use crate::error::Error;
 use std::env;
 use std::path::{Path, PathBuf};
 
-pub(crate) fn categories_in_set(sets_root: &str, set: &str) -> Result<Vec<String>, Error> {
+use crate::error::Error;
+
+pub(crate) fn categories_in_set(root: &str, set: &str) -> Result<Vec<String>, Error> {
     let current_dir = get_current_working_dir()?;
-    let sets_dir = current_dir.join(Path::new(sets_root)).join(set);
+    let sets_dir = current_dir.join(Path::new(root)).join(set);
     let sets = directories_in_path(&sets_dir)?;
     Ok(sets)
 }
 
 pub(crate) fn files_in_category(
-    sets_root: &str,
+    root: &str,
     set: &str,
     category: &str,
 ) -> Result<Vec<String>, Error> {
     let current_dir = get_current_working_dir()?;
-    let sets_dir = path_builder(sets_root, &current_dir, set, category);
-    let sets = directories_in_path(&sets_dir)?
+    let directory = path_builder(root, &current_dir, set, category);
+    let files = directories_in_path(&directory)?
         .iter()
         .flat_map(|dir| {
-            if let Some(path) = sets_dir.join(dir).as_path().to_str() {
+            if let Some(path) = directory.join(dir).as_path().to_str() {
                 Some(String::from(path))
             } else {
-                println!("cannot create directory {sets_dir:#?}/{dir:#?}");
+                println!("cannot create directory {directory:#?}/{dir:#?}");
                 None
             }
         })
         .collect::<Vec<String>>();
-    Ok(sets)
+    Ok(files)
 }
 
 fn path_builder(sets_root: &str, current_dir: &PathBuf, set: &str, category: &str) -> PathBuf {

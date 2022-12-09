@@ -1,9 +1,11 @@
 # RoboHash
+
 Rust implementation of [RoboHash](https://github.com/e1ven/Robohash/) by [e1ven](https://github.com/e1ven)
 
 ## Install
+
 ```bash
-robohash = "0.2.1"
+robohash = "0.2.2"
 ```
 
 ## Example Implementation
@@ -22,33 +24,53 @@ fn main() -> Result<(), Error> {
 ````
 
 ### Define Size
+
 ```rust
 let width = 512;
 let height = 512;
 let robo = RoboHashBuilder::new("test")
-    .with_size(width, height)
-    .build();
+.with_size(width, height)
+.build();
 ```
 
 ### Define Colour
+
 ```rust
 let robo = RoboHashBuilder::new("test")
-    .with_colour(Colour::Green)
-    .build();
+.with_colour(Colour::Green)
+.build();
 ```
 
 ### Define Set
+
 ```rust
 let robo = RoboHashBuilder::new("test")
-    .with_set(Set::Set3)
-    .build();
+.with_set(Set::Set3)
+.build();
 ```
 
 ### Change Sets Directory
+
 ```rust
 let robo = RoboHashBuilder::new("test")
-    .with_set_location("./sets_location")
-    .build();
+.with_set_location("./sets_location")
+.build();
+```
+
+### Define Background
+
+```rust
+let robo = RoboHashBuilder::new("test")
+.with_background_set("bg1")
+.build();
+```
+
+### Change Background Directory
+
+```rust
+let robo = RoboHashBuilder::new("test")
+.with_background_location("./backgrounds")
+.build();
 ```
 
 ### Full Example
@@ -63,6 +85,8 @@ fn main() -> Result<(), Error> {
         .with_set(Set::Set1)
         .with_colour(Colour::Green)
         .with_set_location("./sets-root")
+        .with_background_set("bg1")
+        .with_background_location("./backgrounds")
         .with_size(512, 512)
         .build();
     let robo_hash = robo.assemble_base64()?;
@@ -72,10 +96,12 @@ fn main() -> Result<(), Error> {
 ```
 
 ## Implemented
+
 - Generate base64 robo hash image from any of the provided sets and colours
 
 ## Todo
-- [ ] Support backgrounds
+
+- [x] Support backgrounds
 - [ ] Support for saving images to disk
 - [ ] Support for returning raw image data
 - [x] Support image sizing

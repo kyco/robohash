@@ -1,7 +1,8 @@
+use strum::IntoEnumIterator;
+
 use crate::colour::Colour;
 use crate::error::Error;
 use crate::set_type::Set;
-use strum::IntoEnumIterator;
 
 pub mod colour;
 pub mod error;
@@ -12,10 +13,12 @@ pub mod set_type;
 
 pub struct RoboHashBuilder {
     text: String,
-    set: Set,
-    set_root: String,
     colour: Colour,
     image_size: ImageSize,
+    set: Set,
+    set_root: String,
+    background_set: Option<String>,
+    background_root: String,
 }
 
 impl RoboHashBuilder {
@@ -23,13 +26,17 @@ impl RoboHashBuilder {
         let set = Set::Default;
         let colour = Colour::Any;
         let set_root = String::from("./sets");
+        let background_set = None;
+        let background_root = String::from("./backgrounds");
         let image_size = ImageSize::default();
         Self {
             text: String::from(text),
-            set,
-            set_root,
             colour,
             image_size,
+            set,
+            set_root,
+            background_set,
+            background_root,
         }
     }
 
@@ -40,6 +47,16 @@ impl RoboHashBuilder {
 
     pub fn with_set_location(mut self, set_location: &str) -> RoboHashBuilder {
         self.set_root = String::from(set_location);
+        self
+    }
+
+    pub fn with_background_set(mut self, background_set: &str) -> RoboHashBuilder {
+        self.background_set = Some(String::from(background_set));
+        self
+    }
+
+    pub fn with_background_location(mut self, background_location: &str) -> RoboHashBuilder {
+        self.background_root = String::from(background_location);
         self
     }
 
@@ -66,12 +83,16 @@ impl RoboHashBuilder {
             _ => String::from(self.set.as_str()),
         };
         let sets_root = self.set_root.to_owned();
+        let background_set = self.background_set.to_owned();
+        let background_root = self.background_root.to_owned();
 
         Ok(RoboHash {
             image_size: self.image_size,
             hash_array,
             set,
             sets_root,
+            background_set,
+            background_root,
         })
     }
 }
@@ -82,6 +103,8 @@ pub struct RoboHash {
     hash_array: Vec<i64>,
     set: String,
     sets_root: String,
+    background_set: Option<String>,
+    background_root: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -106,8 +129,17 @@ impl RoboHash {
         }
 
         let set = files_in_set(&self.hash_array, &self.sets_root, &self.set)?;
-        let image =
-            image::build_robo_hash_image(&set, self.image_size.width, self.image_size.height)?;
+        let background = match &self.background_set {
+            Some(set) => background(&self.hash_array, &self.background_root, set)?,
+            None => None,
+        };
+
+        let image = image::build_robo_hash_image(
+            &set,
+            &background,
+            self.image_size.width,
+            self.image_size.height,
+        )?;
         let base64 = image::to_base_64(&image)?;
         Ok(base64)
     }
@@ -147,6 +179,26 @@ fn files_in_set(hash_array: &Vec<i64>, sets_root: &str, set: &str) -> Result<Vec
     Ok(files)
 }
 
+fn background(
+    hash_array: &Vec<i64>,
+    background_root: &str,
+    set: &str,
+) -> Result<Option<String>, Error> {
+    let index = 3;
+    let backgrounds = materials::categories_in_set(background_root, set)?;
+    let set_index = (hash_array[index] % backgrounds.len() as i64) as usize;
+    Ok(match backgrounds.get(set_index) {
+        Some(background) => {
+            let background_path = [background_root, "/", set, "/", background].concat();
+            Some(background_path)
+        }
+        None => {
+            println!("failed to fetch index {set_index:#?} from {backgrounds:#?}");
+            None
+        }
+    })
+}
+
 fn colour_selection(hash_array: &Vec<i64>, colour: &Colour, set: &Set) -> Colour {
     let is_default_set_with_any_colour =
         (set == &Set::Set1 || set == &Set::Default) && colour == &Colour::Any;
@@ -169,8 +221,12 @@ fn random_colour(hash_array: &Vec<i64>) -> Colour {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+
     use crate::image::tests::load_base64_string_image_resources;
+
+    use super::*;
 
     #[test]
     fn test_that_robo_hash_builder_returns_a_builder() {
@@ -288,6 +344,8 @@ mod tests {
             hash_array: vec![],
             set: String::from("set1"),
             sets_root: String::from("set_root"),
+            background_set: None,
+            background_root: String::from("background_root"),
         };
         // act
         let image = robo_hash.assemble_base64();
@@ -312,6 +370,8 @@ mod tests {
             hash_array: vec![1, 2],
             set: String::from(""),
             sets_root: String::from("set_root"),
+            background_set: None,
+            background_root: String::from("background_root"),
         };
         // act
         let image = robo_hash.assemble_base64();
@@ -336,6 +396,8 @@ mod tests {
             hash_array: vec![1, 2],
             set: String::from("set1"),
             sets_root: String::from(""),
+            background_set: None,
+            background_root: String::from("background_root"),
         };
         // act
         let image = robo_hash.assemble_base64();
@@ -349,7 +411,33 @@ mod tests {
 
     #[test]
     #[ignore]
-    fn test() {
+    fn test_that_selected_background_set_is_loaded() {
+        // arrange
+        let initial_string = "test";
+        let set = Set::Default;
+        let colour = Colour::Any;
+        let background_set = "bg1";
+
+        let set = set.clone();
+        let test_resource = format!("{initial_string:#?}_{set:#?}_{colour:#?}_{background_set:#?}");
+        let expected_robo_hash = load_base64_string_image_resources(&test_resource);
+
+        // act
+        let robo_hash = RoboHashBuilder::new(initial_string)
+            .with_set(set.clone())
+            .with_colour(colour.clone())
+            .with_background_set(background_set)
+            .build()
+            .unwrap();
+        let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
+
+        // assert
+        assert_eq!(constructed_robo_hash, expected_robo_hash);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_colour_and_sets() {
         // setup
         let initial_string = "test";
         let sets: Vec<Set> = Set::iter().collect();
@@ -366,13 +454,22 @@ mod tests {
                 let robo_hash = RoboHashBuilder::new(initial_string)
                     .with_set(set)
                     .with_colour(colour)
+                    .with_size(512, 512)
                     .build()
                     .unwrap();
                 let constructed_robo_hash = robo_hash.assemble_base64().unwrap();
+                // _write_to_test_resources(&test_resource, &constructed_robo_hash);
 
                 // assert
                 assert_eq!(constructed_robo_hash, expected_robo_hash);
             }
         }
+    }
+
+    fn _write_to_test_resources(location: &str, content: &str) -> std::io::Result<()> {
+        let file_location = format!("./test_resources/{}.txt", location);
+        let mut file = File::create(file_location)?;
+        file.write_all(content.as_bytes())?;
+        Ok(())
     }
 }

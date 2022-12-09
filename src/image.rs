@@ -1,22 +1,38 @@
-use crate::error::Error;
-use image::{imageops, DynamicImage, RgbaImage};
 use std::io::Cursor;
+
+use image::{imageops, DynamicImage, ImageBuffer, Rgba, RgbaImage};
+
+use crate::error::Error;
 
 pub(crate) fn build_robo_hash_image(
     robo_parts: &Vec<String>,
+    background: &Option<String>,
     width: u32,
     height: u32,
 ) -> Result<RgbaImage, Error> {
     let mut base_image = image::ImageBuffer::new(width, height);
+    if let Some(background) = background {
+        append_to_image(&mut base_image, background, width, height)?;
+    }
     robo_parts
         .iter()
         .try_for_each(|image_path| -> Result<(), Error> {
-            let image = try_open_image(image_path)?;
-            let mut image = imageops::resize(&image, width, height, imageops::FilterType::Lanczos3);
-            image::imageops::overlay(&mut base_image, &mut image, 0, 0);
+            append_to_image(&mut base_image, image_path, width, height)?;
             Ok(())
         })?;
     Ok(base_image)
+}
+
+fn append_to_image(
+    base_image: &mut ImageBuffer<Rgba<u8>, Vec<u8>>,
+    image_path: &String,
+    width: u32,
+    height: u32,
+) -> Result<(), Error> {
+    let image = try_open_image(image_path)?;
+    let mut image = imageops::resize(&image, width, height, imageops::FilterType::Lanczos3);
+    imageops::overlay(base_image, &mut image, 0, 0);
+    Ok(())
 }
 
 fn try_open_image(image_path: &String) -> Result<DynamicImage, Error> {
@@ -34,9 +50,10 @@ pub(crate) fn to_base_64(image: &RgbaImage) -> Result<String, Error> {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use super::*;
     use std::fs::File;
     use std::io::Read;
+
+    use super::*;
 
     #[test]
     fn build_robo_hash_image_returns_built_image_of_parts() {
@@ -49,7 +66,7 @@ pub(crate) mod tests {
             String::from("./sets/set4/004#04accessories/003#accessory3.png"),
         ];
         // act
-        let robo_hash = build_robo_hash_image(&robo_parts, 512, 512);
+        let robo_hash = build_robo_hash_image(&robo_parts, &None, 512, 512);
         // assert
         assert!(robo_hash.is_ok())
     }
@@ -65,7 +82,7 @@ pub(crate) mod tests {
             String::from("./sets/set4/004#04accessories/003#accessory3.png"),
         ];
         let expected_base64 = load_base64_string_image_resources("image");
-        let robo_hash = build_robo_hash_image(&robo_parts, 512, 512).unwrap();
+        let robo_hash = build_robo_hash_image(&robo_parts, &None, 512, 512).unwrap();
         // act
         let base64_string = to_base_64(&robo_hash);
         // assert
@@ -75,7 +92,8 @@ pub(crate) mod tests {
 
     pub(crate) fn load_base64_string_image_resources(filename: &str) -> String {
         let mut file_contents = String::new();
-        let mut file = File::open(&format!("./test_resources/{}.txt", filename)).unwrap();
+        let file_location = format!("./test_resources/{}.txt", filename);
+        let mut file = File::open(&file_location).unwrap();
         file.read_to_string(&mut file_contents).unwrap();
         file_contents
     }

@@ -1,7 +1,9 @@
-use crate::error::Error;
+use std::io::{BufReader, Read};
+
 use data_encoding::HEXLOWER;
 use ring::digest::{Context, SHA512};
-use std::io::{BufReader, Read};
+
+use crate::error::Error;
 
 pub(crate) fn sha512_digest(string: &str) -> Result<String, Error> {
     let mut reader = BufReader::new(string.as_bytes());
